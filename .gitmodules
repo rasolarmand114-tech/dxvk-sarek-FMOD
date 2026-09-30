@@ -3,4 +3,4 @@
 	url = https://github.com/KhronosGroup/SPIRV-Headers.git
 [submodule "include/vulkan"]
 	path = include/vulkan
-	url = https://github.com/KhronosGroup/Vulkan-Headers/tree/vulkan-sdk-1.4.363
+	url = https://github.com/KhronosGroup/VulkanSC-Headers
