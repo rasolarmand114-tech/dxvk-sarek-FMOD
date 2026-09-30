@@ -82,6 +82,19 @@ namespace dxvk {
       void *dummy;
 #endif
     };
+    // Set alongside/instead of `handle` when `type` is
+    // VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT or
+    // VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT - see the branch on
+    // `type` in DxvkImage's constructor and canShareImage() in
+    // dxvk_image.cpp. NOT a union member with `handle` on purpose: on this
+    // MinGW/Windows-target build _WIN32 is always defined (that's what
+    // "target", not "host OS", means here - see the comment above), so
+    // `handle` is always the live member of that union regardless of host,
+    // and something outside src/dxvk still has to actually populate `fd`
+    // with a real dma-buf/opaque-fd value for the fd-based import/export
+    // path below to ever be reached at all - this struct alone can't do
+    // that, it only makes dxvk_image.cpp *able* to use it once it is set.
+    int fd = -1;
   };
 
 
@@ -221,7 +234,7 @@ namespace dxvk {
      * \brief Whether this slice bypasses VMA
      *
      * True for allocations that had to go through raw
-     * \c vkAllocateMemory instead of VMA — currently only
+     * \c vkAllocateMemory instead of VMA â€” currently only
      * shared/external memory (import/export), since VMA's
      * public API has no way to carry the extra \c pNext
      * chain (\c VkExportMemoryAllocateInfo /
@@ -357,19 +370,6 @@ namespace dxvk {
     // zeroed in the constructor body instead (same reasoning as
     // DxvkAdapter::initHeapAllocInfo() for its own atomic array).
     std::array<std::atomic<VkDeviceSize>, VK_MAX_MEMORY_HEAPS> m_rawAllocated;
-
-#ifdef _WIN32
-    // Resolved once at construction time (see the khrExternalMemoryWin32
-    // block in the constructor). Used by tryAllocRaw() to restrict the
-    // memory type index chosen for an *imported* Win32 handle to the set
-    // the driver actually reports as valid for that specific handle,
-    // instead of trusting the local resource's own VkMemoryRequirements
-    // alone (see the call site for why that distinction matters). Left
-    // null if the symbol doesn't resolve or the extension isn't enabled;
-    // tryAllocRaw() falls back to its previous (pre-1.3-optimization)
-    // behaviour in that case.
-    PFN_vkGetMemoryWin32HandlePropertiesKHR m_pfnGetMemoryWin32HandleProperties = nullptr;
-#endif
 
     VmaPool findOrCreatePool(
             DxvkMemoryPoolCategory           category,
