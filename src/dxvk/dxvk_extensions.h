@@ -319,6 +319,18 @@ namespace dxvk {
     DxvkExt khrDynamicRenderingLocalRead      = { VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME,        DxvkExtMode::Optional };
     DxvkExt khrExternalMemoryWin32            = { VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,              DxvkExtMode::Optional };
     DxvkExt khrExternalSemaphoreWin32         = { VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,           DxvkExtMode::Optional };
+    // Linux/Android-native alternatives to the two above. VK_EXT_external_memory_dma_buf
+    // depends on VK_KHR_external_memory_fd (it only adds a new handle-type
+    // enum value, reusing _fd's functions/structs), so both are declared
+    // together. See dxvk_image.cpp for where these actually get used -
+    // whether they help at all depends on whether the Vulkan implementation
+    // DXVK is actually talking to under Wine/Winlator (winevulkan, not the
+    // native Mali driver directly - see the long comment in canShareImage())
+    // advertises these to a Windows-target guest in the first place.
+    DxvkExt khrExternalMemoryFd               = { VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,                  DxvkExtMode::Optional };
+    DxvkExt extExternalMemoryDmaBuf           = { VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,              DxvkExtMode::Optional };
+    DxvkExt extExternalMemoryHost             = { VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME,                 DxvkExtMode::Optional };
+    DxvkExt extExternalMemoryAcquireUnmodified = { VK_EXT_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXTENSION_NAME,  DxvkExtMode::Optional };
     DxvkExt khrImageFormatList                = { VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME,                  DxvkExtMode::Optional };
     DxvkExt khrImagelessFramebuffer           = { VK_KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME,               DxvkExtMode::Optional };
     DxvkExt khrIncrementalPresent             = { VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME,                 DxvkExtMode::Optional };
