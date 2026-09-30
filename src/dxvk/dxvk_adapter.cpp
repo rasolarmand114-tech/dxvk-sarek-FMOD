@@ -309,8 +309,12 @@ namespace dxvk {
       &devExtensions.khrDriverProperties,
       &devExtensions.khrDynamicRendering,
       &devExtensions.khrDynamicRenderingLocalRead,
+      &devExtensions.khrExternalMemoryFd,
       &devExtensions.khrExternalMemoryWin32,
       &devExtensions.khrExternalSemaphoreWin32,
+      &devExtensions.extExternalMemoryAcquireUnmodified,
+      &devExtensions.extExternalMemoryDmaBuf,
+      &devExtensions.extExternalMemoryHost,
       &devExtensions.khrImageFormatList,
       &devExtensions.khrImagelessFramebuffer,
       &devExtensions.khrIncrementalPresent,
@@ -604,6 +608,12 @@ namespace dxvk {
       enabledFeatures.extRasterizationOrderAttachmentAccess = m_deviceFeatures.extRasterizationOrderAttachmentAccess;
       enabledFeatures.extRasterizationOrderAttachmentAccess.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_FEATURES_EXT;
       enabledFeatures.extRasterizationOrderAttachmentAccess.pNext = std::exchange(enabledFeatures.core.pNext, &enabledFeatures.extRasterizationOrderAttachmentAccess);
+    }
+
+    if (devExtensions.extExternalMemoryAcquireUnmodified) {
+      enabledFeatures.extExternalMemoryAcquireUnmodified = m_deviceFeatures.extExternalMemoryAcquireUnmodified;
+      enabledFeatures.extExternalMemoryAcquireUnmodified.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_FEATURES_EXT;
+      enabledFeatures.extExternalMemoryAcquireUnmodified.pNext = std::exchange(enabledFeatures.core.pNext, &enabledFeatures.extExternalMemoryAcquireUnmodified);
     }
 
     // Report the desired overallocation behaviour to the driver
@@ -1052,6 +1062,11 @@ namespace dxvk {
     if (m_deviceExtensions.supports(VK_EXT_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_EXTENSION_NAME)) {
       m_deviceFeatures.extRasterizationOrderAttachmentAccess.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_FEATURES_EXT;
       m_deviceFeatures.extRasterizationOrderAttachmentAccess.pNext = std::exchange(m_deviceFeatures.core.pNext, &m_deviceFeatures.extRasterizationOrderAttachmentAccess);
+    }
+
+    if (m_deviceExtensions.supports(VK_EXT_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXTENSION_NAME)) {
+      m_deviceFeatures.extExternalMemoryAcquireUnmodified.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_FEATURES_EXT;
+      m_deviceFeatures.extExternalMemoryAcquireUnmodified.pNext = std::exchange(m_deviceFeatures.core.pNext, &m_deviceFeatures.extExternalMemoryAcquireUnmodified);
     }
 
     m_vki->vkGetPhysicalDeviceFeatures2(m_handle, &m_deviceFeatures.core);
