@@ -107,17 +107,43 @@ namespace dxvk {
     }
 
 #ifdef _WIN32
-    VkImportMemoryWin32HandleInfoKHR importInfo;
-    if (m_shared && createInfo.sharing.mode == DxvkSharedHandleMode::Import) {
-      importInfo.sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
-      importInfo.pNext = nullptr;
-      importInfo.handleType = createInfo.sharing.type;
-      importInfo.handle = createInfo.sharing.handle;
-      importInfo.name = nullptr;
-
-      dedMemoryAllocInfo.pNext = &importInfo;
-    }
+    VkImportMemoryWin32HandleInfoKHR importInfoWin32;
 #endif
+    VkImportMemoryFdInfoKHR importInfoFd;
+
+    if (m_shared && createInfo.sharing.mode == DxvkSharedHandleMode::Import) {
+      // Two distinct import mechanisms, chosen by sharing.type - a
+      // VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT / _DMA_BUF_BIT_EXT
+      // handle cannot be imported through VkImportMemoryWin32HandleInfoKHR
+      // (wrong struct for that handle type per spec), nor can a Win32
+      // handle be imported through VkImportMemoryFdInfoKHR - unlike the
+      // export side above, which is naturally generic (VkExportMemoryAllocateInfo
+      // just carries a handleTypes bitmask), the import side genuinely
+      // needs a different struct per handle kind.
+      bool useFd =
+           createInfo.sharing.type == VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT
+        || createInfo.sharing.type == VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
+
+      if (useFd) {
+        importInfoFd.sType      = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR;
+        importInfoFd.pNext      = nullptr;
+        importInfoFd.handleType = createInfo.sharing.type;
+        importInfoFd.fd         = createInfo.sharing.fd;
+
+        dedMemoryAllocInfo.pNext = &importInfoFd;
+      }
+#ifdef _WIN32
+      else {
+        importInfoWin32.sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+        importInfoWin32.pNext = nullptr;
+        importInfoWin32.handleType = createInfo.sharing.type;
+        importInfoWin32.handle = createInfo.sharing.handle;
+        importInfoWin32.name = nullptr;
+
+        dedMemoryAllocInfo.pNext = &importInfoWin32;
+      }
+#endif
+    }
 
     m_vkd->vkGetImageMemoryRequirements2(
       m_vkd->device(), &memReqInfo, &memReq);
@@ -181,8 +207,14 @@ namespace dxvk {
     if (sharingInfo.mode == DxvkSharedHandleMode::None)
       return false;
 
-    if (!m_device->extensions().khrExternalMemoryWin32) {
-      Logger::err("Failed to create shared resource: VK_KHR_EXTERNAL_MEMORY_WIN32 not supported");
+    bool haveWin32Path = m_device->extensions().khrExternalMemoryWin32;
+    bool haveFdPath     = m_device->extensions().khrExternalMemoryFd
+                       && (m_device->extensions().extExternalMemoryDmaBuf
+                        || sharingInfo.type == VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT);
+
+    if (!haveWin32Path && !haveFdPath) {
+      Logger::err("Failed to create shared resource: no supported external memory path "
+                   "(VK_KHR_external_memory_win32 / VK_KHR_external_memory_fd + VK_EXT_external_memory_dma_buf)");
       return false;
     }
 
